@@ -140,59 +140,160 @@ async function initStatus(dataUrl, sampleRows) {
   if (empty) empty.hidden = !(live && rows.length === 0);
   renderStatus(rows);
 }
-function renderStatus(rows) {
-  const bySchool = {};
-  let lost = 0, damaged = 0;
-  rows.forEach((r) => {
-    const school = (r.school || "Unknown").trim();
-    r.kind === "lost" ? lost++ : damaged++;
-    (bySchool[school] = bySchool[school] || { lost: 0, damaged: 0 })[r.kind === "lost" ? "lost" : "damaged"]++;
+/* Replay the report log over the donation catalogue to derive the current
+   state of every copy. Each report moves one copy:
+     lost / damaged : good → lost / damaged
+     restored       : lost (else damaged) → good
+   Titles that can't be matched to the school's list are tracked separately. */
+function deriveStates(rows) {
+  const states = new Map(); // school name → state
+  CATALOG.schools.forEach((s) => {
+    states.set(s.name, {
+      school: s,
+      perTitle: new Map(s.items.map((it) =>
+        [normTxt(it[0]), { title: it[0], level: it[1], copies: it[2], lost: 0, damaged: 0, unmatched: false }])),
+      extra: new Map(), // reported titles not in the catalogue
+    });
   });
-  document.getElementById("sum-total").textContent = rows.length;
-  document.getElementById("sum-lost").textContent = lost;
-  document.getElementById("sum-damaged").textContent = damaged;
-  document.getElementById("sum-schools").textContent = Object.keys(bySchool).length;
-
-  const board = document.getElementById("by-school");
-  board.innerHTML = Object.entries(bySchool)
-    .sort((a, b) => (b[1].lost + b[1].damaged) - (a[1].lost + a[1].damaged))
-    .map(([name, v]) =>
-      `<div class="cell"><b>${v.lost + v.damaged}</b><span>${escapeHtml(name)} — ${v.lost} lost · ${v.damaged} damaged</span></div>`
-    ).join("") || `<div class="cell"><b>0</b><span>No reports yet</span></div>`;
-
-  renderRestock(rows);
-
-  const tbody = document.querySelector("table.reports:not(.restock) tbody");
-  tbody.innerHTML = rows.slice(-30).reverse().map((r) =>
-    `<tr><td>${escapeHtml(r.t || "")}</td><td>${escapeHtml(r.school || "")}</td><td>${escapeHtml(r.title || "")}</td>` +
-    `<td><span class="pill ${r.kind === "lost" ? "lost" : "damaged"}">${r.kind === "lost" ? "Lost" : "Damaged"}</span></td>` +
-    `<td>${escapeHtml(r.note || "")}</td></tr>`
-  ).join("") || `<tr><td colspan="5" style="color:var(--muted)">No reports yet.</td></tr>`;
+  rows.forEach((r) => {
+    const st = states.get((r.school || "").trim());
+    if (!st) return;
+    let entry = null;
+    const hit = (r.matched && st.school.items.find((it) => it[0] === r.title)) ||
+                fuzzyBest(st.school.items, r.title || "");
+    if (hit) entry = st.perTitle.get(normTxt(hit[0]));
+    if (!entry) {
+      const k = normTxt(r.title || "");
+      if (!st.extra.has(k))
+        st.extra.set(k, { title: (r.title || "").trim(), level: "", copies: 0, lost: 0, damaged: 0, unmatched: true });
+      entry = st.extra.get(k);
+    }
+    if (r.kind === "restored") {
+      if (entry.lost > 0) entry.lost--;
+      else if (entry.damaged > 0) entry.damaged--;
+    } else if (r.kind === "lost" || r.kind === "damaged") {
+      const room = entry.unmatched || entry.lost + entry.damaged < entry.copies;
+      if (room) entry[r.kind]++;
+    }
+  });
+  return states;
 }
-/* Match every reported title against that school's donation list and
-   aggregate into a restock shopping list. */
-function renderRestock(rows) {
-  const tbody = document.querySelector("table.restock tbody");
-  if (!tbody || typeof CATALOG === "undefined") return;
-  const agg = new Map(); // school ¦ title → entry
-  rows.forEach((r) => {
-    const school = CATALOG.schools.find((s) => s.name === (r.school || "").trim());
-    const hit = school ? (r.matched
-      ? school.items.find((it) => it[0] === r.title) || fuzzyBest(school.items, r.title || "")
-      : fuzzyBest(school.items, r.title || "")) : null;
-    const title = hit ? hit[0] : (r.title || "").trim();
-    const key = (r.school || "?") + "¦" + normTxt(title);
-    const e = agg.get(key) || { school: r.school || "?", title, level: hit ? hit[1] : "", matched: !!hit, lost: 0, damaged: 0 };
-    r.kind === "lost" ? e.lost++ : e.damaged++;
-    agg.set(key, e);
+function schoolTotals(st) {
+  let lost = 0, damaged = 0;
+  st.perTitle.forEach((e) => { lost += e.lost; damaged += e.damaged; });
+  st.extra.forEach((e) => { lost += e.lost; damaged += e.damaged; });
+  const good = Math.max(0, st.school.books -
+    [...st.perTitle.values()].reduce((n, e) => n + e.lost + e.damaged, 0));
+  return { good, lost, damaged };
+}
+
+function renderStatus(rows) {
+  const counts = { lost: 0, damaged: 0, restored: 0 };
+  rows.forEach((r) => { if (counts[r.kind] !== undefined) counts[r.kind]++; });
+  const states = deriveStates(rows);
+
+  let curLost = 0, curDamaged = 0;
+  const reporting = new Set(rows.map((r) => (r.school || "").trim()));
+  states.forEach((st) => { const t = schoolTotals(st); curLost += t.lost; curDamaged += t.damaged; });
+  document.getElementById("sum-total").textContent = rows.length;
+  document.getElementById("sum-lost").textContent = curLost;
+  document.getElementById("sum-damaged").textContent = curDamaged;
+  document.getElementById("sum-schools").textContent = reporting.size;
+
+  renderSchoolBoard(states);
+  renderRestock(states);
+
+  const KIND_PILL = { lost: ["lost", "Lost"], damaged: ["damaged", "Damaged"], restored: ["restored", "Found"] };
+  const tbody = document.querySelector("table.reports:not(.restock) tbody");
+  tbody.innerHTML = rows.slice(-30).reverse().map((r) => {
+    const [cls, label] = KIND_PILL[r.kind] || ["damaged", r.kind];
+    return `<tr><td>${escapeHtml(r.t || "")}</td><td>${escapeHtml(r.school || "")}</td><td>${escapeHtml(r.title || "")}</td>` +
+      `<td><span class="pill ${cls}">${label}</span></td>` +
+      `<td>${escapeHtml(r.note || "")}</td></tr>`;
+  }).join("") || `<tr><td colspan="5" style="color:var(--muted)">No reports yet.</td></tr>`;
+}
+
+/* Per-school overview cards — tap one to open the full status catalogue. */
+function renderSchoolBoard(states) {
+  const grid = document.getElementById("school-status");
+  if (!grid) return;
+  grid.innerHTML = "";
+  CATALOG.schools.forEach((s) => {
+    const st = states.get(s.name);
+    const t = schoolTotals(st);
+    const btn = document.createElement("button");
+    btn.className = "school";
+    btn.setAttribute("aria-haspopup", "dialog");
+    btn.innerHTML =
+      `<span class="n">${s.books.toLocaleString()}<em>books</em></span>` +
+      `<b>${escapeHtml(s.name)}</b>` +
+      `<span class="st-line">` +
+      `<i class="ok-txt">${t.good} good</i>` +
+      (t.lost ? ` · <i class="lost-txt">${t.lost} lost</i>` : "") +
+      (t.damaged ? ` · <i class="dmg-txt">${t.damaged} damaged</i>` : "") +
+      `</span>`;
+    btn.addEventListener("click", () => openStatusModal(st, t));
+    grid.appendChild(btn);
   });
-  const list = [...agg.values()].sort((a, b) =>
-    a.school.localeCompare(b.school) || (b.lost + b.damaged) - (a.lost + a.damaged));
+}
+function openStatusModal(st, tot) {
+  const m = document.getElementById("status-modal");
+  m.querySelector("h3").textContent = st.school.name;
+  m.querySelector(".meta").textContent =
+    `${st.school.books.toLocaleString()} books — ${tot.good} good · ${tot.lost} lost · ${tot.damaged} damaged`;
+  const input = m.querySelector(".search input");
+  input.value = "";
+  const rowsAll = [...st.perTitle.values(), ...st.extra.values()];
+  const render = (q) => {
+    const needle = (q || "").trim().toLowerCase();
+    const rows = rowsAll.filter((e) => !needle || e.title.toLowerCase().includes(needle));
+    m.querySelector("tbody").innerHTML = rows.map((e) => {
+      const good = e.unmatched ? 0 : Math.max(0, e.copies - e.lost - e.damaged);
+      const chips = e.unmatched
+        ? `${statusChips(e)} <span class="badge">not in catalogue</span>`
+        : (e.lost || e.damaged)
+          ? `<span class="chip-st good">${good} good</span>${statusChips(e)}`
+          : `<span class="chip-st allgood">all good</span>`;
+      return `<tr><td>${escapeHtml(e.title)}</td><td>${escapeHtml(e.level || "—")}</td>` +
+        `<td class="num">${e.unmatched ? "—" : e.copies}</td><td>${chips}</td></tr>`;
+    }).join("") || `<tr><td colspan="4" style="color:var(--muted)">${t("noResults")}</td></tr>`;
+  };
+  input.oninput = (e) => render(e.target.value);
+  render("");
+  m.classList.add("open");
+  document.body.style.overflow = "hidden";
+  m.querySelector(".close").focus();
+}
+function statusChips(e) {
+  return (e.lost ? ` <span class="chip-st lost">${e.lost} lost</span>` : "") +
+         (e.damaged ? ` <span class="chip-st damaged">${e.damaged} damaged</span>` : "");
+}
+function initStatusModal() {
+  const m = document.getElementById("status-modal");
+  if (!m) return;
+  const close = () => { m.classList.remove("open"); document.body.style.overflow = ""; };
+  m.querySelector(".veil").addEventListener("click", close);
+  m.querySelector(".close").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => e.key === "Escape" && close());
+}
+
+/* Outstanding (still lost/damaged) copies, aggregated as a shopping list. */
+function renderRestock(states) {
+  const tbody = document.querySelector("table.restock tbody");
+  if (!tbody) return;
+  const list = [];
+  states.forEach((st) => {
+    [...st.perTitle.values(), ...st.extra.values()].forEach((e) => {
+      if (e.lost + e.damaged > 0)
+        list.push({ school: st.school.name, ...e });
+    });
+  });
+  list.sort((a, b) => a.school.localeCompare(b.school) || (b.lost + b.damaged) - (a.lost + a.damaged));
   tbody.innerHTML = list.map((e) =>
     `<tr><td>${escapeHtml(e.school)}</td>` +
-    `<td>${escapeHtml(e.title)}${e.matched ? "" : ' <span class="badge">not in catalogue</span>'}</td>` +
+    `<td>${escapeHtml(e.title)}${e.unmatched ? ' <span class="badge">not in catalogue</span>' : ""}</td>` +
     `<td>${escapeHtml(e.level || "—")}</td>` +
     `<td class="num">${e.lost} lost · ${e.damaged} damaged</td>` +
     `<td class="num"><b>${e.lost + e.damaged}</b></td></tr>`
-  ).join("") || `<tr><td colspan="5" style="color:var(--muted)">Nothing to restock yet.</td></tr>`;
+  ).join("") || `<tr><td colspan="5" style="color:var(--muted)">Nothing to restock — every book is on the shelf. 🎉</td></tr>`;
 }

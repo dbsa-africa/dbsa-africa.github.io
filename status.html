@@ -37,13 +37,16 @@
 
     <div class="board" style="margin-bottom:26px">
       <div class="cell"><b id="sum-total">–</b><span>Reports in total</span></div>
-      <div class="cell"><b id="sum-lost">–</b><span>Books reported lost</span></div>
-      <div class="cell"><b id="sum-damaged">–</b><span>Books reported damaged</span></div>
+      <div class="cell"><b id="sum-lost">–</b><span>Books currently lost</span></div>
+      <div class="cell"><b id="sum-damaged">–</b><span>Books currently damaged</span></div>
       <div class="cell"><b id="sum-schools">–</b><span>Schools reporting</span></div>
     </div>
 
-    <p class="cohort-label">By school</p>
-    <div class="board" id="by-school" style="margin-bottom:34px"></div>
+    <p class="cohort-label">Book status by school</p>
+    <p style="font-size:13.5px;color:var(--muted);margin:-4px 0 12px">
+      Tap a school to see its full donation list with the live status of every title.
+      Found reports move books back to good.</p>
+    <div class="grid three" id="school-status" style="margin-bottom:34px"></div>
 
     <p class="cohort-label">Restock suggestions</p>
     <p style="font-size:13.5px;color:var(--muted);margin:-4px 0 12px">
@@ -74,6 +77,25 @@
   </div>
 </footer>
 
+<!-- per-school status modal -->
+<div class="modal" id="status-modal" role="dialog" aria-modal="true" aria-label="School book status">
+  <div class="veil"></div>
+  <div class="panel">
+    <header>
+      <h3>School</h3>
+      <span class="meta"></span>
+      <button class="close" type="button">Close ✕</button>
+    </header>
+    <div class="search"><input type="search" placeholder="Search this school's book list…" aria-label="Search book list"></div>
+    <div class="list">
+      <table>
+        <thead><tr><th>Title</th><th>Level</th><th style="text-align:right">Copies</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script src="assets/catalog.js"></script>
 <script src="site.js"></script>
 <script>
@@ -82,12 +104,14 @@
   const DATA_URL = "https://raw.githubusercontent.com/dbsa-africa/dbsa-africa.github.io/main/data/reports.json";
 
   const SAMPLE = [
-    { t: "2026-08-05 11:05", school: "Joy Day Care",         title: "Kamusi ya Kiswahili",     kind: "damaged", note: "Water damage",            matched: true },
-    { t: "2026-08-08 13:21", school: "Myto Junior Academy",  title: "diary of a wimpy kid",    kind: "lost",    note: "Missing after holiday",   matched: false },
-    { t: "2026-08-10 09:40", school: "Caso Upendo Academy",  title: "Sungura Mjanja",          kind: "damaged", note: "Pages loose",             matched: true },
-    { t: "2026-08-11 15:02", school: "Genesis Joy School",   title: "My First Physics Book",   kind: "lost",    note: "",                        matched: false },
-    { t: "2026-08-12 10:14", school: "Pilot School",         title: "The Secret Garden",       kind: "damaged", note: "Cover torn, still readable", matched: true }
+    { t: "2026-08-05 11:05", school: "Joy Day Care",         title: "Kamusi ya Kiswahili",     kind: "damaged",  note: "Water damage",              matched: true },
+    { t: "2026-08-08 13:21", school: "Myto Junior Academy",  title: "diary of a wimpy kid",    kind: "lost",     note: "Missing after holiday",     matched: false },
+    { t: "2026-08-10 09:40", school: "Caso Upendo Academy",  title: "Sungura Mjanja",          kind: "damaged",  note: "Pages loose",               matched: true },
+    { t: "2026-08-11 15:02", school: "Genesis Joy School",   title: "My First Physics Book",   kind: "lost",     note: "",                          matched: false },
+    { t: "2026-08-12 10:14", school: "Pilot School",         title: "The Secret Garden",       kind: "damaged",  note: "Cover torn, still readable", matched: true },
+    { t: "2026-08-13 09:02", school: "Myto Junior Academy",  title: "Diary of a Wimpy Kid",    kind: "restored", note: "Found in another classroom", matched: true }
   ];
+  initStatusModal();
   /* append ?sample=1 to preview the board with demo data */
   initStatus(new URLSearchParams(location.search).has("sample") ? "" : DATA_URL, SAMPLE);
 </script>

@@ -253,6 +253,18 @@ table.reports td{padding:10px 14px;border-bottom:1px solid var(--line)}
 .pill.lost{background:rgba(154,106,0,.13);color:var(--warn)}
 .pill.damaged{background:rgba(107,0,0,.10);color:var(--accent)}
 :root[data-theme="dark"] .pill.damaged{background:rgba(228,147,138,.14)}
+.pill.restored{background:rgba(46,107,63,.13);color:var(--ok)}
+
+/* per-title status chips + school overview lines */
+.chip-st{display:inline-block;font:700 10.5px/1 var(--sans);padding:4px 8px;border-radius:99px;margin:1px 2px 1px 0;white-space:nowrap}
+.chip-st.allgood,.chip-st.good{background:rgba(46,107,63,.12);color:var(--ok)}
+.chip-st.lost{background:rgba(154,106,0,.13);color:var(--warn)}
+.chip-st.damaged{background:rgba(107,0,0,.10);color:var(--accent)}
+:root[data-theme="dark"] .chip-st.damaged{background:rgba(228,147,138,.14)}
+.st-line i{font-style:normal;font-weight:600}
+.st-line .ok-txt{color:var(--ok)}
+.st-line .lost-txt{color:var(--warn)}
+.st-line .dmg-txt{color:var(--accent)}
 
 /* ---------- report form ---------- */
 .narrow{max-width:640px}
@@ -304,7 +316,8 @@ table.reports td{padding:10px 14px;border-bottom:1px solid var(--line)}
   background:color-mix(in srgb,var(--accent) 7%,transparent);
   border:1px solid var(--accent);border-radius:6px;padding:11px 14px;
 }
-.kinds{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kinds{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:420px){.kinds{grid-template-columns:1fr;gap:8px}}
 .kind{
   background:var(--tint);border:1.5px solid var(--line);border-radius:8px;
   padding:14px 10px;cursor:pointer;text-align:center;font-family:var(--sans);

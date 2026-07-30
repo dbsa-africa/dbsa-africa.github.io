@@ -17,12 +17,24 @@ const REPO = "dbsa-africa/dbsa-africa.github.io";
 const FILE = "data/reports.json";
 const ORIGIN = "https://dbsa-africa.github.io";
 
-const SCHOOLS = [
-  "Bilgates School", "Hope Baptist School", "Recada Academy", "Jasil School",
-  "Changrong School", "Hanka School", "Happy Star School",
-  "Pilot School", "Changqin DBSA School", "Myto Junior Academy",
-  "Joy Day Care", "Caso Upendo Academy", "Genesis Joy School",
-];
+const SCHOOLS = {
+  "bilgates": "Bilgates School", "hope-baptist": "Hope Baptist School",
+  "recada": "Recada Academy", "jasil": "Jasil School",
+  "changrong": "Changrong School", "hanka": "Hanka School",
+  "happy-star": "Happy Star School", "pilot": "Pilot School",
+  "changqin": "Changqin DBSA School", "myto": "Myto Junior Academy",
+  "joy-day": "Joy Day Care", "caso": "Caso Upendo Academy",
+  "genesis-joy": "Genesis Joy School",
+};
+
+/* Per-school QR code: first 10 hex chars of sha256("<REPORT_KEY>:<school id>").
+   REPORT_KEY is a Worker secret; gen_qr.py embeds the same codes in the QR
+   links, so a report is only accepted with the matching school's own QR. */
+async function schoolCode(env, id) {
+  const data = new TextEncoder().encode(`${env.REPORT_KEY}:${id}`);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 10);
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": ORIGIN,
@@ -61,10 +73,19 @@ export default {
 
     const school = String(b.school || "").trim();
     const title = String(b.title || "").trim().slice(0, 200);
-    const kind = b.kind === "lost" ? "lost" : b.kind === "damaged" ? "damaged" : null;
+    const kind = ["lost", "damaged", "restored"].includes(b.kind) ? b.kind : null;
     const note = String(b.note || "").trim().slice(0, 500);
-    if (!SCHOOLS.includes(school) || title.length < 2 || !kind)
+    const schoolId = Object.keys(SCHOOLS).find((id) => SCHOOLS[id] === school);
+    if (!schoolId || title.length < 2 || !kind)
       return reply({ error: "missing or invalid fields" }, 400);
+
+    // Each school may only report through its own QR code.
+    // (Until REPORT_KEY is configured, the check is skipped.)
+    if (env.REPORT_KEY) {
+      const expected = await schoolCode(env, schoolId);
+      if (String(b.k || "") !== expected)
+        return reply({ error: "invalid QR code for this school" }, 403);
+    }
 
     const rec = {
       t: new Date().toISOString().slice(0, 16).replace("T", " "),

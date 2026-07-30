@@ -56,8 +56,13 @@ push 后 1–2 分钟自动生效（`*.github.io` 仓库的 Pages 是自动开�
    的全部内容粘贴进去 → 右上角 **Deploy**
 5. 返回该 Worker 页面 → **Settings → Variables and Secrets → + Add**：
    Type 选 **Secret**，Variable name 填 `GITHUB_TOKEN`，Value 粘贴步骤 A 的 token → **Deploy**
-6. 复制 Worker 网址（形如 `https://dbsa-report.<子域名>.workers.dev`）。
+6. 同样方法再加一个 Secret：名称 `REPORT_KEY`，值填一句**自己编的长口令**（比如三四个随机单词）。
+   它用来给每所学校的二维码签发专属校验码——**学校只能用自己的二维码报自己的书**。
+   口令记进交接文档，别提交进仓库
+7. 复制 Worker 网址（形如 `https://dbsa-report.<子域名>.workers.dev`）。
    浏览器直接打开它显示 `{"error":"POST only"}` 就说明 Worker 活着
+
+> 以后仓库里的 `worker.js` 有更新时，重复第 4 步（Edit code → 覆盖粘贴 → Deploy）即可。
 
 **C. 接线**
 1. 编辑 `report.html` 顶部脚本：`const ENDPOINT = "粘贴 Worker 网址";`
@@ -81,20 +86,24 @@ push 后 1–2 分钟自动生效（`*.github.io` 仓库的 Pages 是自动开�
 
 ## 4. 生成 13 校专属二维码
 
-不需要任何链接，直接运行：
-
 ```bash
 cd "/Users/paulineli/Desktop/DBSA/dbsa-africa.github.io"
 pip3 install qrcode pillow   # 只需一次
-python3 gen_qr.py
+python3 gen_qr.py "和 Worker 里 REPORT_KEY 一模一样的口令"
 ```
 
-`qr/` 下生成 13 张 PNG，每张指向 `report.html?school=<该校 id>`（校名自动选好）。
+`qr/` 下生成 13 张 PNG，每张指向 `report.html?school=<该校 id>&k=<该校专属码>`：
+校名自动锁定、不能切换；专属码由 Worker 验证，改网址冒充别校无效；
+不带二维码直接打开报损页只会看到"请扫本校二维码"的提示。
+
 打印（建议 5×5cm 以上）塑封，贴在每校**书柜门内侧**。
+⚠️ 二维码 PNG **不要提交进仓库**（已 gitignore）——里面的专属码就是钥匙。
+换了 REPORT_KEY 就要重新生成并重印全部二维码。
 
 ## 5. 交接清单（8/12 离场前）
 
 - [ ] GitHub 组织 People 里至少 2 名 Owner（你 + 锐锐/DBSA）
 - [ ] Cloudflare 账号用 DBSA 邮箱注册，密码交接（或把接班人加为账号成员）
+- [ ] REPORT_KEY 口令写进交接文档（补印/重印二维码时要用）
 - [ ] GITHUB_TOKEN 用组织 Owner 账号生成、无过期时间；人员变动时重新生成并更新 Worker Secret
 - [ ] 本手册连同仓库一起交接；改版找志愿者或用 Claude 打开仓库即可

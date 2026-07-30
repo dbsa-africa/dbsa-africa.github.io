@@ -31,18 +31,24 @@
       <span class="sw">Hali ya majaribio — ripoti hazihifadhiwi bado.</span>
     </div>
 
+    <div class="form-card" id="qr-required" hidden>
+      <h3>Please scan your school's QR code <span class="sw-h">· Skana QR ya shule yako</span></h3>
+      <p style="margin:0;color:var(--muted)">Reports can only be made through the QR code inside
+      your school's bookcase door — it opens this form with your school already selected.
+      This keeps every school's records safe.
+      <span class="sw">Ripoti hufanywa kwa kuskana QR iliyo ndani ya kabati la vitabu la shule yako.</span></p>
+      <p style="margin:0;font-size:13.5px;color:var(--muted)">Lost your QR code? Email
+      <a href="mailto:ivolunteerdbsa@hotmail.com">ivolunteerdbsa@hotmail.com</a> for a replacement.</p>
+    </div>
+
     <form class="form-card" id="report-form" autocomplete="off" novalidate>
 
       <div class="field" id="school-field">
-        <label for="school-select">School <span class="sw">· Shule</span></label>
-        <div class="school-chip" id="school-chip" hidden>
+        <label>School <span class="sw">· Shule</span></label>
+        <div class="school-chip" id="school-chip">
           <b id="school-chip-name"></b>
           <span id="school-chip-meta"></span>
-          <button type="button" class="x" id="school-change" aria-label="Change school">Change</button>
         </div>
-        <select id="school-select">
-          <option value="" disabled selected>Choose your school · Chagua shule yako</option>
-        </select>
       </div>
 
       <div class="field" id="book-field">
@@ -68,7 +74,12 @@
           <button type="button" class="kind" data-kind="damaged" aria-pressed="false">
             <b>Damaged</b><span>Kimeharibika</span>
           </button>
+          <button type="button" class="kind" data-kind="restored" aria-pressed="false">
+            <b>Found</b><span>Kimepatikana</span>
+          </button>
         </div>
+        <p class="hint">Found — a book that was reported lost or damaged is back on the shelf.
+        <span class="sw">Kimepatikana — kitabu kilichoripotiwa kimerudi.</span></p>
       </div>
 
       <div class="field">
@@ -117,32 +128,22 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
 (function () {
   const $ = (id) => document.getElementById(id);
   const form = $("report-form");
-  let school = null;      // {id, name, cohort, books, items}
   let pickedTitle = null; // exact catalogue title, or null when free-typed
   let kind = null;
 
-  /* ---- school ---- */
-  const sel = $("school-select");
-  CATALOG.schools.forEach((s) => {
-    const o = document.createElement("option");
-    o.value = s.id; o.textContent = s.name;
-    sel.appendChild(o);
-  });
-  function setSchool(s) {
-    school = s;
-    clearPick(); $("book-input").value = ""; renderSuggest([]);
-    if (s) {
-      $("school-chip-name").textContent = s.name;
-      $("school-chip-meta").textContent = `${s.books.toLocaleString()} books in your Book Corner`;
-      $("school-chip").hidden = false; sel.hidden = true;
-    } else {
-      $("school-chip").hidden = true; sel.hidden = false; sel.value = "";
-    }
+  /* ---- school comes ONLY from the QR link (?school=<id>&k=<code>) ----
+     Each school's QR carries its own code, checked by the Worker, so one
+     school cannot file reports against another school's books. */
+  const params = new URLSearchParams(location.search);
+  const KEY = params.get("k") || "";
+  const school = CATALOG.schools.find((s) => s.id === params.get("school")) || null;
+  if (!school || !KEY) {
+    form.hidden = true;
+    $("qr-required").hidden = false;
+  } else {
+    $("school-chip-name").textContent = school.name;
+    $("school-chip-meta").textContent = `${school.books.toLocaleString()} books in your Book Corner`;
   }
-  sel.addEventListener("change", () => {
-    setSchool(CATALOG.schools.find((s) => s.id === sel.value) || null);
-  });
-  $("school-change").addEventListener("click", () => setSchool(null));
 
   /* ---- book autocomplete ---- */
   const input = $("book-input"), box = $("suggest");
@@ -182,10 +183,6 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
   }
   $("picked-clear").addEventListener("click", () => { clearPick(); input.focus(); });
 
-  /* initial school from the QR link (?school=<id>) — after all consts exist */
-  const param = new URLSearchParams(location.search).get("school");
-  setSchool(CATALOG.schools.find((s) => s.id === param) || null);
-
   /* ---- lost / damaged ---- */
   document.querySelectorAll(".kind").forEach((b) =>
     b.addEventListener("click", () => {
@@ -200,13 +197,13 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
     e.preventDefault();
     const err = $("form-err");
     const title = pickedTitle || input.value.trim();
-    if (!school) return showErr("Please choose your school. · Tafadhali chagua shule yako.");
+    if (!school) return;
     if (title.length < 2) return showErr("Please enter the book title. · Tafadhali andika jina la kitabu.");
-    if (!kind) return showErr("Please tap Lost or Damaged. · Tafadhali chagua Kimepotea au Kimeharibika.");
+    if (!kind) return showErr("Please tap Lost, Damaged or Found. · Tafadhali chagua kilichotokea.");
     err.hidden = true;
 
     const payload = {
-      school: school.name, title, kind,
+      school: school.name, title, kind, k: KEY,
       note: $("note-input").value.trim(),
       matched: !!pickedTitle,
       website: $("hp").value,
@@ -220,6 +217,8 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (res.status === 403)
+          return showErr("This QR code is not valid for this school — please scan the QR inside your own bookcase. · Tafadhali tumia QR ya shule yako.");
         if (!res.ok) throw new Error("HTTP " + res.status);
       }
       $("success-recap").textContent = `${title} — ${kind} · ${school.name}`;
