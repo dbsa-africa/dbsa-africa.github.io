@@ -47,13 +47,17 @@ push 后 1–2 分钟自动生效（`*.github.io` 仓库的 Pages 是自动开�
 2. **Generate new token (classic)**：Note 填 `dbsa-report-worker`，Expiration 选 **No expiration**，勾选 **repo** 一项即可 → Generate
 3. 复制生成的 `ghp_…` 字符串（只显示一次）
 
-**B. 部署 Worker**
+**B. 部署 Worker**（Cloudflare 界面时有改版，找不到按钮就搜 "Create Worker"）
 1. 注册/登录 https://dash.cloudflare.com （免费版即可）
-2. **Workers & Pages → Create → Create Worker** → 随便命名如 `dbsa-report` → Deploy
-3. 点 **Edit code**，把仓库里 `worker.js` 的全部内容粘贴覆盖示例代码 → **Deploy**
-4. 回到该 Worker 的 **Settings → Variables and Secrets → Add**：类型选 **Secret**，
-   名称 `GITHUB_TOKEN`，值粘贴步骤 A 的 token → Save
-5. 复制 Worker 网址（形如 `https://dbsa-report.xxxx.workers.dev`）
+2. 左栏 **Compute → Workers & Pages** → 右上角蓝色 **Create application**
+   → 选 **Workers**（不是 Pages）→ **Start with Hello World!** → Get started
+3. 名称改成 `dbsa-report` → **Deploy**（先部署示例代码，没关系）
+4. 部署成功页点 **Edit code**，全选删掉示例代码，把仓库里 `worker.js`
+   的全部内容粘贴进去 → 右上角 **Deploy**
+5. 返回该 Worker 页面 → **Settings → Variables and Secrets → + Add**：
+   Type 选 **Secret**，Variable name 填 `GITHUB_TOKEN`，Value 粘贴步骤 A 的 token → **Deploy**
+6. 复制 Worker 网址（形如 `https://dbsa-report.<子域名>.workers.dev`）。
+   浏览器直接打开它显示 `{"error":"POST only"}` 就说明 Worker 活着
 
 **C. 接线**
 1. 编辑 `report.html` 顶部脚本：`const ENDPOINT = "粘贴 Worker 网址";`
