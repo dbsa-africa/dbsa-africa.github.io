@@ -1,18 +1,1 @@
-[
- {
-  "t": "2026-07-30 13:37",
-  "school": "Pilot School",
-  "title": "TEST - please ignore",
-  "kind": "damaged",
-  "note": "end-to-end test by Claude",
-  "matched": false
- },
- {
-  "t": "2026-07-30 13:38",
-  "school": "Myto Junior Academy",
-  "title": "Sungura Mjanja",
-  "kind": "lost",
-  "note": "TEST by Claude - please ignore",
-  "matched": true
- }
-]
+[]
