@@ -1,1 +1,10 @@
-[]
+[
+ {
+  "t": "2026-07-30 13:37",
+  "school": "Pilot School",
+  "title": "TEST - please ignore",
+  "kind": "damaged",
+  "note": "end-to-end test by Claude",
+  "matched": false
+ }
+]
