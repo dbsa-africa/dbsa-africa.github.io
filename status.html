@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book Corner — Loss &amp; Damage Board · DBSA</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="assets/logos/dbsa-en.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/logos/dbsa-en.png" alt="DBSA — Dream Building Service Association">
+    </a>
+    <a class="link keep" href="bookcorner.html">← Book Corner</a>
+  </div>
+</nav>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Programme management</p>
+    <h2>Loss &amp; damage board</h2>
+    <p class="lead">Live records submitted by partner schools through the bookcase QR form.
+    Used by the DBSA team to plan restocking visits.</p>
+
+    <div class="notice" id="live-note">
+      <strong>Sample data.</strong> This board is not yet connected to the reporting form.
+      Once the Google Form is live, publish its response sheet as CSV and paste the link into
+      <code>CSV_URL</code> at the bottom of this page (see DEPLOY.md, step 4).
+    </div>
+
+    <div class="board" style="margin-bottom:26px">
+      <div class="cell"><b id="sum-total">–</b><span>Reports in total</span></div>
+      <div class="cell"><b id="sum-lost">–</b><span>Books reported lost</span></div>
+      <div class="cell"><b id="sum-damaged">–</b><span>Books reported damaged</span></div>
+      <div class="cell"><b id="sum-schools">–</b><span>Schools reporting</span></div>
+    </div>
+
+    <p class="cohort-label">By school</p>
+    <div class="board" id="by-school" style="margin-bottom:34px"></div>
+
+    <p class="cohort-label">Latest reports</p>
+    <div style="overflow-x:auto">
+      <table class="reports">
+        <thead><tr><th>Date</th><th>School</th><th>Book</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/logos/dbsa-en.png" alt="DBSA">
+    <p>Internal management page — link shared with the DBSA team and funding partners.</p>
+    <p>© 2026 DBSA</p>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+<script>
+  /* Paste the published-to-web CSV link of the Google Form response sheet here: */
+  const CSV_URL = "";
+
+  const SAMPLE = [
+    ["12/08/2026 10:14", "Pilot School", "The Secret Garden (#SG-03)", "Damaged", "Cover torn, still readable"],
+    ["11/08/2026 15:02", "Genesis Joy School", "Physics for Kids", "Lost", ""],
+    ["10/08/2026 09:40", "Caso Upendo Academy", "Sungura Mjanja (#SM-02)", "Damaged", "Pages loose"],
+    ["08/08/2026 13:21", "Myto Junior Academy", "Diary of a Wimpy Kid", "Lost", "Missing after holiday"],
+    ["05/08/2026 11:05", "Joy Day Care", "Kamusi ya Kiswahili", "Damaged", "Water damage"]
+  ];
+  initStatus(CSV_URL, SAMPLE);
+</script>
+</body>
+</html>
