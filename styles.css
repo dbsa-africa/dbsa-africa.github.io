@@ -88,6 +88,8 @@ p{margin:0 0 1em;max-width:64ch}
 .nav .wrap{display:flex;align-items:center;gap:26px;height:62px}
 .nav .brand{display:flex;align-items:center;gap:10px;margin-right:auto;text-decoration:none;color:var(--ink)}
 .nav .brand img{height:34px;width:auto}
+:root[data-theme="dark"] .nav .brand img{filter:brightness(0) invert(1)}
+@media (prefers-color-scheme:dark){:root:not([data-theme]) .nav .brand img{filter:brightness(0) invert(1)}}
 .nav a.link{
   font:560 14px var(--display);color:var(--ink);text-decoration:none;
   padding:6px 2px;border-bottom:2px solid transparent;
@@ -99,6 +101,16 @@ p{margin:0 0 1em;max-width:64ch}
 }
 :root[data-theme="dark"] .nav .cta{background:var(--accent);color:#131518}
 @media (prefers-color-scheme:dark){:root:not([data-theme]) .nav .cta{background:var(--accent);color:#131518}}
+.theme-btn{
+  background:none;border:1px solid var(--line);border-radius:6px;
+  width:34px;height:34px;display:grid;place-items:center;
+  cursor:pointer;color:var(--ink);flex:none;padding:0;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+.theme-btn svg{width:17px;height:17px;display:block}
+.theme-btn .ic-sun{display:none}
+.theme-btn[data-mode="dark"] .ic-sun{display:block}
+.theme-btn[data-mode="dark"] .ic-moon{display:none}
 @media (max-width:640px){.nav a.link{display:none}.nav a.link.keep{display:inline-block}}
 
 /* ---------- hero ---------- */

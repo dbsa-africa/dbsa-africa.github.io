@@ -20,6 +20,28 @@ const I18N = {
 const LANG = document.documentElement.dataset.lang || "en";
 const t = (k) => (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
 
+/* ---------- theme toggle ---------- */
+function initTheme() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  const sys = matchMedia("(prefers-color-scheme: dark)");
+  const eff = () => document.documentElement.dataset.theme || (sys.matches ? "dark" : "light");
+  const paint = () => {
+    const m = eff();
+    btn.dataset.mode = m;
+    btn.setAttribute("aria-label", m === "dark" ? "Switch to light mode" : "Switch to dark mode");
+  };
+  btn.addEventListener("click", () => {
+    const next = eff() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch (_) {}
+    paint();
+  });
+  sys.addEventListener && sys.addEventListener("change", paint);
+  paint();
+}
+initTheme();
+
 /* ---------- scroll reveal ---------- */
 document.addEventListener("DOMContentLoaded", () => {
   const io = new IntersectionObserver(
