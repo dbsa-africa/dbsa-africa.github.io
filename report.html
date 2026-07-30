@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Report a book — DBSA Book Corner</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="assets/logos/dbsa-en.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/logos/dbsa-en.png" alt="DBSA — Dream Building Service Association">
+    </a>
+    <a class="link keep" href="bookcorner.html">← Book Corner</a>
+  </div>
+</nav>
+
+<section>
+  <div class="wrap narrow">
+    <p class="eyebrow">Book Corner</p>
+    <h2>Report a book <span class="sw-h">· Ripoti kitabu</span></h2>
+    <p class="lead">Lost or damaged? Tell us in under a minute — it helps us restock your school.
+    <span class="sw">Kimepotea au kimeharibika? Tuambie kwa dakika moja.</span></p>
+
+    <div class="notice" id="test-banner" hidden>
+      <strong>Test mode — reports are not being saved yet.</strong><br>
+      <span class="sw">Hali ya majaribio — ripoti hazihifadhiwi bado.</span>
+    </div>
+
+    <form class="form-card" id="report-form" autocomplete="off" novalidate>
+
+      <div class="field" id="school-field">
+        <label for="school-select">School <span class="sw">· Shule</span></label>
+        <div class="school-chip" id="school-chip" hidden>
+          <b id="school-chip-name"></b>
+          <span id="school-chip-meta"></span>
+          <button type="button" class="x" id="school-change" aria-label="Change school">Change</button>
+        </div>
+        <select id="school-select">
+          <option value="" disabled selected>Choose your school · Chagua shule yako</option>
+        </select>
+      </div>
+
+      <div class="field" id="book-field">
+        <label for="book-input">Book title <span class="sw">· Jina la kitabu</span></label>
+        <p class="hint">Start typing, then tap the right book from the list.
+        <span class="sw">Anza kuandika, kisha chagua kitabu.</span></p>
+        <input type="text" id="book-input" placeholder="e.g. Diary of a Wimpy Kid" maxlength="200">
+        <div class="suggest" id="suggest" role="listbox"></div>
+        <div class="picked" id="picked" hidden>
+          <span id="picked-title"></span>
+          <button type="button" class="x" id="picked-clear" aria-label="Clear selected book">✕</button>
+        </div>
+        <p class="hint" id="free-hint" hidden>Book not in the list? No problem — just type its name as written on the cover.
+        <span class="sw">Kitabu hakipo kwenye orodha? Andika jina lake tu.</span></p>
+      </div>
+
+      <div class="field">
+        <label>What happened? <span class="sw">· Nini kilitokea?</span></label>
+        <div class="kinds">
+          <button type="button" class="kind" data-kind="lost" aria-pressed="false">
+            <b>Lost</b><span>Kimepotea</span>
+          </button>
+          <button type="button" class="kind" data-kind="damaged" aria-pressed="false">
+            <b>Damaged</b><span>Kimeharibika</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="note-input">Note <span class="sw">· Maelezo (hiari)</span></label>
+        <textarea id="note-input" rows="2" maxlength="500"
+          placeholder="Optional — e.g. cover torn, missing since the holiday"></textarea>
+      </div>
+
+      <input class="hp" type="text" name="website" id="hp" tabindex="-1" aria-hidden="true">
+
+      <p class="form-err" id="form-err" hidden></p>
+      <button class="btn solid block" type="submit" id="submit-btn">Send report · Tuma ripoti</button>
+    </form>
+
+    <div class="form-card success" id="success" hidden>
+      <div class="ok-ring">✓</div>
+      <h3>Report received — thank you! <span class="sw-h">Asante!</span></h3>
+      <p id="success-recap" style="color:var(--muted);margin:0"></p>
+      <p id="success-test" class="sw" hidden><strong>Test mode:</strong> this report was NOT saved.</p>
+      <button class="btn solid" type="button" id="again-btn">Report another book · Ripoti kitabu kingine</button>
+    </div>
+
+    <p style="margin-top:22px;font-size:13px;color:var(--muted)">
+      Questions? <a href="mailto:ivolunteerdbsa@hotmail.com">ivolunteerdbsa@hotmail.com</a>
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/logos/dbsa-en.png" alt="DBSA">
+    <p>Book Corner Programme · Mathare, Nairobi<br>
+    <a href="mailto:ivolunteerdbsa@hotmail.com">ivolunteerdbsa@hotmail.com</a></p>
+    <p>© 2026 DBSA</p>
+  </div>
+</footer>
+
+<script src="assets/catalog.js"></script>
+<script src="site.js"></script>
+<script>
+/* ===== Reporting endpoint =====
+   Paste the Cloudflare Worker URL here once deployed (DEPLOY.md step 3).
+   While empty, the page runs in clearly-labelled test mode and saves nothing. */
+const ENDPOINT = "";
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const form = $("report-form");
+  let school = null;      // {id, name, cohort, books, items}
+  let pickedTitle = null; // exact catalogue title, or null when free-typed
+  let kind = null;
+
+  /* ---- school ---- */
+  const sel = $("school-select");
+  CATALOG.schools.forEach((s) => {
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.name;
+    sel.appendChild(o);
+  });
+  function setSchool(s) {
+    school = s;
+    clearPick(); $("book-input").value = ""; renderSuggest([]);
+    if (s) {
+      $("school-chip-name").textContent = s.name;
+      $("school-chip-meta").textContent = `${s.books.toLocaleString()} books in your Book Corner`;
+      $("school-chip").hidden = false; sel.hidden = true;
+    } else {
+      $("school-chip").hidden = true; sel.hidden = false; sel.value = "";
+    }
+  }
+  sel.addEventListener("change", () => {
+    setSchool(CATALOG.schools.find((s) => s.id === sel.value) || null);
+  });
+  $("school-change").addEventListener("click", () => setSchool(null));
+
+  /* ---- book autocomplete ---- */
+  const input = $("book-input"), box = $("suggest");
+  function renderSuggest(items) {
+    box.innerHTML = items.map((it, i) =>
+      `<button type="button" role="option" data-i="${i}">
+         <span>${escapeHtml(it[0])}</span><span class="lvl">${escapeHtml(it[1] || "")}</span>
+       </button>`).join("");
+    box.classList.toggle("open", items.length > 0);
+    box._items = items;
+  }
+  input.addEventListener("input", () => {
+    clearPick(true);
+    const q = input.value;
+    if (!school || q.trim().length < 2) { renderSuggest([]); $("free-hint").hidden = true; return; }
+    const hits = fuzzySuggest(school.items, q, 8);
+    renderSuggest(hits);
+    $("free-hint").hidden = hits.length > 0;
+  });
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    pick(box._items[+b.dataset.i][0]);
+  });
+  document.addEventListener("click", (e) => {
+    if (!$("book-field").contains(e.target)) renderSuggest([]);
+  });
+  function pick(title) {
+    pickedTitle = title;
+    $("picked-title").textContent = title;
+    $("picked").hidden = false; input.hidden = true; $("free-hint").hidden = true;
+    renderSuggest([]);
+  }
+  function clearPick(keepInput) {
+    pickedTitle = null;
+    $("picked").hidden = true; input.hidden = false;
+    if (!keepInput) input.value = "";
+  }
+  $("picked-clear").addEventListener("click", () => { clearPick(); input.focus(); });
+
+  /* initial school from the QR link (?school=<id>) — after all consts exist */
+  const param = new URLSearchParams(location.search).get("school");
+  setSchool(CATALOG.schools.find((s) => s.id === param) || null);
+
+  /* ---- lost / damaged ---- */
+  document.querySelectorAll(".kind").forEach((b) =>
+    b.addEventListener("click", () => {
+      kind = b.dataset.kind;
+      document.querySelectorAll(".kind").forEach((x) =>
+        x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    }));
+
+  /* ---- submit ---- */
+  if (!ENDPOINT) $("test-banner").hidden = false;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = $("form-err");
+    const title = pickedTitle || input.value.trim();
+    if (!school) return showErr("Please choose your school. · Tafadhali chagua shule yako.");
+    if (title.length < 2) return showErr("Please enter the book title. · Tafadhali andika jina la kitabu.");
+    if (!kind) return showErr("Please tap Lost or Damaged. · Tafadhali chagua Kimepotea au Kimeharibika.");
+    err.hidden = true;
+
+    const payload = {
+      school: school.name, title, kind,
+      note: $("note-input").value.trim(),
+      matched: !!pickedTitle,
+      website: $("hp").value,
+    };
+    const btn = $("submit-btn");
+    btn.disabled = true; btn.textContent = "Sending… · Inatuma…";
+    try {
+      if (ENDPOINT) {
+        const res = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+      }
+      $("success-recap").textContent = `${title} — ${kind} · ${school.name}`;
+      $("success-test").hidden = !!ENDPOINT;
+      form.hidden = true; $("success").hidden = false;
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } catch (_) {
+      showErr("Could not send — please check your connection and try again. · Imeshindikana kutuma — tafadhali jaribu tena.");
+    } finally {
+      btn.disabled = false; btn.textContent = "Send report · Tuma ripoti";
+    }
+  });
+  function showErr(msg) {
+    const err = $("form-err");
+    err.textContent = msg; err.hidden = false;
+    return false;
+  }
+
+  $("again-btn").addEventListener("click", () => {
+    clearPick(); $("note-input").value = ""; kind = null;
+    document.querySelectorAll(".kind").forEach((x) => x.setAttribute("aria-pressed", "false"));
+    $("success").hidden = true; form.hidden = false;
+    input.focus();
+  });
+})();
+</script>
+</body>
+</html>

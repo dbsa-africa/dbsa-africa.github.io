@@ -52,6 +52,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -252,6 +253,86 @@ table.reports td{padding:10px 14px;border-bottom:1px solid var(--line)}
 .pill.lost{background:rgba(154,106,0,.13);color:var(--warn)}
 .pill.damaged{background:rgba(107,0,0,.10);color:var(--accent)}
 :root[data-theme="dark"] .pill.damaged{background:rgba(228,147,138,.14)}
+
+/* ---------- report form ---------- */
+.narrow{max-width:640px}
+.sw{color:var(--muted);font-weight:500}
+.sw-h{font-weight:500;color:var(--muted);font-size:.72em}
+.form-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:26px;box-shadow:var(--shadow);display:grid;gap:22px;margin-top:8px;
+}
+.field{display:grid;gap:8px;position:relative}
+.field>label{font:600 14.5px var(--display)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.field input[type=text],.field textarea,.field select{
+  width:100%;font:16px var(--sans);color:var(--ink);background:var(--tint);
+  border:1px solid var(--line);border-radius:6px;padding:12px 14px;
+}
+.field input:focus,.field textarea:focus,.field select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);
+}
+.school-chip{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  background:color-mix(in srgb,var(--accent) 7%,transparent);
+  border:1px solid var(--accent);border-radius:6px;padding:12px 14px;
+}
+.school-chip b{font:600 15.5px var(--display)}
+.school-chip span{font-size:12.5px;color:var(--muted)}
+.x{
+  margin-left:auto;background:none;border:1px solid var(--line);border-radius:5px;
+  font:600 12px var(--sans);color:var(--muted);padding:4px 9px;cursor:pointer;
+}
+.x:hover{border-color:var(--accent);color:var(--accent)}
+.suggest{
+  position:absolute;top:100%;left:0;right:0;z-index:30;margin-top:4px;
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  box-shadow:var(--shadow);max-height:264px;overflow:auto;display:none;
+}
+.suggest.open{display:block}
+.suggest button{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;
+  text-align:left;background:none;border:0;border-bottom:1px solid var(--line);
+  padding:11px 14px;font:14.5px var(--sans);color:var(--ink);cursor:pointer;
+}
+.suggest button:last-child{border-bottom:none}
+.suggest button:hover{background:var(--tint)}
+.suggest .lvl{color:var(--muted);font-size:12px;white-space:nowrap}
+.picked{
+  display:flex;align-items:center;gap:10px;font-size:15px;
+  background:color-mix(in srgb,var(--accent) 7%,transparent);
+  border:1px solid var(--accent);border-radius:6px;padding:11px 14px;
+}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kind{
+  background:var(--tint);border:1.5px solid var(--line);border-radius:8px;
+  padding:14px 10px;cursor:pointer;text-align:center;font-family:var(--sans);
+}
+.kind b{display:block;font:600 15px var(--display);color:var(--ink)}
+.kind span{font-size:12.5px;color:var(--muted)}
+.kind[aria-pressed="true"]{
+  border-color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);
+}
+.kind[aria-pressed="true"] b{color:var(--accent)}
+.btn.block{width:100%;text-align:center;padding:14px;font-size:15px;border:0;cursor:pointer}
+.hp{position:absolute;left:-5000px;top:0;width:1px;height:1px;overflow:hidden}
+.form-err{color:#B3261E;font-size:14px;margin:0}
+:root[data-theme="dark"] .form-err{color:#F2B8B5}
+@media (prefers-color-scheme:dark){:root:not([data-theme]) .form-err{color:#F2B8B5}}
+.success{text-align:center;justify-items:center;gap:14px;padding:36px 26px}
+.success .ok-ring{
+  width:64px;height:64px;border-radius:50%;font-size:30px;
+  background:color-mix(in srgb,var(--ok) 13%,transparent);color:var(--ok);
+  display:grid;place-items:center;
+}
+.badge{
+  display:inline-block;font:700 10.5px/1 var(--sans);letter-spacing:.04em;
+  color:var(--warn);background:rgba(154,106,0,.12);
+  border-radius:4px;padding:3px 7px;vertical-align:1px;
+}
+table.reports td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* partners */
 .partners{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap}

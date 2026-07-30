@@ -155,7 +155,7 @@
         or tap the button. It takes under a minute on any phone, and helps us plan restocking
         for your school.</p>
       </div>
-      <a class="btn solid" id="report-link" href="#" data-form="FORM_URL_PLACEHOLDER">Report a book</a>
+      <a class="btn solid" href="report.html">Report a book</a>
     </div>
   </div>
 </section>
@@ -165,7 +165,7 @@
     <img src="assets/logos/dbsa-en.png" alt="DBSA">
     <p>Book Corner Programme · Africa Dream Campus Project<br>
     <a href="mailto:ivolunteerdbsa@hotmail.com">ivolunteerdbsa@hotmail.com</a></p>
-    <p>Funded by TECNO · Delivered with the Amity Foundation<br>© 2026 DBSA. All rights reserved.</p>
+    <p>Funded by TECNO and the Amity Foundation · Delivered by DBSA<br>© 2026 DBSA. All rights reserved.</p>
   </div>
 </footer>
 
@@ -190,16 +190,6 @@
 
 <script src="assets/catalog.js"></script>
 <script src="site.js"></script>
-<script>
-  initCatalog();
-  // Until the Google Form is live, the report button explains how to use the QR instead.
-  document.getElementById("report-link").addEventListener("click", function (e) {
-    const url = this.dataset.form;
-    if (!url || url === "FORM_URL_PLACEHOLDER") {
-      e.preventDefault();
-      alert("The online reporting form goes live in August 2026.\nPartner schools: please use the QR code inside your bookcase door.");
-    } else { this.href = url; }
-  });
-</script>
+<script>initCatalog();</script>
 </body>
 </html>

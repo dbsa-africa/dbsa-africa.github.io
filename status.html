@@ -27,9 +27,12 @@
     Used by the DBSA team to plan restocking visits.</p>
 
     <div class="notice" id="live-note">
-      <strong>Sample data.</strong> This board is not yet connected to the reporting form.
-      Once the Google Form is live, publish its response sheet as CSV and paste the link into
-      <code>CSV_URL</code> at the bottom of this page (see DEPLOY.md, step 4).
+      <strong>Sample data.</strong> This board is not yet connected to the reporting system.
+      Deploy the report Worker (DEPLOY.md), and this page starts reading
+      <code>data/reports.json</code> automatically.
+    </div>
+    <div class="notice" id="empty-note" hidden style="border-color:var(--ok)">
+      <strong>Connected — no reports yet.</strong> Every book is accounted for. 🎉
     </div>
 
     <div class="board" style="margin-bottom:26px">
@@ -41,6 +44,17 @@
 
     <p class="cohort-label">By school</p>
     <div class="board" id="by-school" style="margin-bottom:34px"></div>
+
+    <p class="cohort-label">Restock suggestions</p>
+    <p style="font-size:13.5px;color:var(--muted);margin:-4px 0 12px">
+      Reported titles are matched automatically against each school's donation list —
+      use this as the shopping list for follow-up visits.</p>
+    <div style="overflow-x:auto;margin-bottom:34px">
+      <table class="reports restock">
+        <thead><tr><th>School</th><th>Book to restock</th><th>Level</th><th>Reports</th><th style="text-align:right">Copies</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <p class="cohort-label">Latest reports</p>
     <div style="overflow-x:auto">
@@ -60,19 +74,22 @@
   </div>
 </footer>
 
+<script src="assets/catalog.js"></script>
 <script src="site.js"></script>
 <script>
-  /* Paste the published-to-web CSV link of the Google Form response sheet here: */
-  const CSV_URL = "";
+  /* Live data written by the report Worker into this repository.
+     raw.githubusercontent serves it with CORS enabled and no Pages build delay. */
+  const DATA_URL = "https://raw.githubusercontent.com/dbsa-africa/dbsa-africa.github.io/main/data/reports.json";
 
   const SAMPLE = [
-    ["12/08/2026 10:14", "Pilot School", "The Secret Garden (#SG-03)", "Damaged", "Cover torn, still readable"],
-    ["11/08/2026 15:02", "Genesis Joy School", "Physics for Kids", "Lost", ""],
-    ["10/08/2026 09:40", "Caso Upendo Academy", "Sungura Mjanja (#SM-02)", "Damaged", "Pages loose"],
-    ["08/08/2026 13:21", "Myto Junior Academy", "Diary of a Wimpy Kid", "Lost", "Missing after holiday"],
-    ["05/08/2026 11:05", "Joy Day Care", "Kamusi ya Kiswahili", "Damaged", "Water damage"]
+    { t: "2026-08-05 11:05", school: "Joy Day Care",         title: "Kamusi ya Kiswahili",     kind: "damaged", note: "Water damage",            matched: true },
+    { t: "2026-08-08 13:21", school: "Myto Junior Academy",  title: "diary of a wimpy kid",    kind: "lost",    note: "Missing after holiday",   matched: false },
+    { t: "2026-08-10 09:40", school: "Caso Upendo Academy",  title: "Sungura Mjanja",          kind: "damaged", note: "Pages loose",             matched: true },
+    { t: "2026-08-11 15:02", school: "Genesis Joy School",   title: "My First Physics Book",   kind: "lost",    note: "",                        matched: false },
+    { t: "2026-08-12 10:14", school: "Pilot School",         title: "The Secret Garden",       kind: "damaged", note: "Cover torn, still readable", matched: true }
   ];
-  initStatus(CSV_URL, SAMPLE);
+  /* append ?sample=1 to preview the board with demo data */
+  initStatus(new URLSearchParams(location.search).has("sample") ? "" : DATA_URL, SAMPLE);
 </script>
 </body>
 </html>
