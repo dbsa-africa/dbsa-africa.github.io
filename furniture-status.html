@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desks &amp; Chairs — Condition Board · DBSA</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="assets/logos/dbsa-en.png">
+<script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}})()</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/logos/dbsa-en.png" alt="DBSA — Dream Building Service Association">
+    </a>
+    <a class="link keep" href="status.html">Book board</a>
+    <a class="link keep" href="furniture.html">← Desks &amp; Chairs</a>
+      <button class="theme-btn" id="theme-toggle" type="button" aria-label="Switch theme">
+      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</nav>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Programme management</p>
+    <h2>Desks &amp; chairs condition board</h2>
+    <p class="lead">Live records submitted by partner schools through the desks &amp; chairs QR form.
+    Used by the DBSA team to plan repairs and replacements.</p>
+
+    <div class="notice" id="live-note">
+      <strong>Sample data.</strong> The board switches to live data automatically once
+      <code>data/furniture-reports.json</code> exists in the repository.
+    </div>
+    <div class="notice" id="empty-note" hidden style="border-color:var(--ok)">
+      <strong>Connected — no reports yet.</strong> Every item is in use and in good shape. 🎉
+    </div>
+
+    <div class="board" style="margin-bottom:26px">
+      <div class="cell"><b id="sum-total">–</b><span>Reports in total</span></div>
+      <div class="cell"><b id="sum-damaged">–</b><span>Items currently damaged</span></div>
+      <div class="cell"><b id="sum-lost">–</b><span>Items currently lost</span></div>
+      <div class="cell"><b id="sum-schools">–</b><span>Schools reporting</span></div>
+    </div>
+
+    <p class="cohort-label">Status by school</p>
+    <p style="font-size:13.5px;color:var(--muted);margin:-4px 0 12px">
+      Tap a school to see every delivered item with its live condition.
+      Fixed reports move items back to good.</p>
+    <div class="grid three" id="school-status" style="margin-bottom:34px"></div>
+
+    <p class="cohort-label">Repair &amp; replacement list</p>
+    <p style="font-size:13.5px;color:var(--muted);margin:-4px 0 12px">
+      Everything currently reported damaged or lost — the work list for follow-up visits.</p>
+    <div style="overflow-x:auto;margin-bottom:34px">
+      <table class="reports restock">
+        <thead><tr><th>School</th><th>Item</th><th>Damaged</th><th>Lost</th><th style="text-align:right">To fix / replace</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <p class="cohort-label">Latest reports</p>
+    <div style="overflow-x:auto">
+      <table class="reports latest">
+        <thead><tr><th>Date</th><th>School</th><th>Item</th><th style="text-align:right">Qty</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/logos/dbsa-en.png" alt="DBSA">
+    <p>Internal management page — link shared with the DBSA team and funding partners.</p>
+    <p>© 2026 DBSA</p>
+  </div>
+</footer>
+
+<!-- per-school status modal -->
+<div class="modal" id="status-modal" role="dialog" aria-modal="true" aria-label="School furniture status">
+  <div class="veil"></div>
+  <div class="panel">
+    <header>
+      <h3>School</h3>
+      <span class="meta"></span>
+      <button class="close" type="button">Close ✕</button>
+    </header>
+    <div class="list" style="padding-top:8px">
+      <table>
+        <thead><tr><th>Item</th><th style="text-align:right">Units</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="assets/furniture.js"></script>
+<script src="site.js"></script>
+<script>
+const DATA_URL = "https://raw.githubusercontent.com/dbsa-africa/dbsa-africa.github.io/main/data/furniture-reports.json";
+
+const SAMPLE = [
+  { t: "2026-08-04 10:12", school: "Hanka DBSA School",      item: "desk",    kind: "damaged",  qty: 2, note: "Broken legs, Grade 4" },
+  { t: "2026-08-06 09:30", school: "Myto Junior Academy",    item: "chair_s", kind: "lost",     qty: 3, note: "" },
+  { t: "2026-08-08 14:05", school: "Caso Upendo Academy",    item: "board",   kind: "damaged",  qty: 1, note: "Cracked corner" },
+  { t: "2026-08-10 11:44", school: "Valley View Academy",    item: "desk",    kind: "damaged",  qty: 1, note: "Loose frame" },
+  { t: "2026-08-12 08:20", school: "Hanka DBSA School",      item: "desk",    kind: "restored", qty: 1, note: "Welded by local fundi" }
+];
+
+(function () {
+  const KIND_PILL = { damaged: ["damaged", "Damaged"], lost: ["lost", "Lost"], restored: ["restored", "Fixed"] };
+
+  function derive(rows) {
+    const states = new Map();
+    FURNITURE.schools.forEach((s) => {
+      const per = {};
+      Object.entries(s.units).forEach(([k, u]) => { per[k] = { units: u, damaged: 0, lost: 0 }; });
+      states.set(s.name, { school: s, per });
+    });
+    rows.forEach((r) => {
+      const st = states.get((r.school || "").trim());
+      const e = st && st.per[r.item];
+      if (!e) return;
+      let q = Math.max(1, Math.floor(+r.qty || 1));
+      if (r.kind === "restored") {
+        const d = Math.min(q, e.damaged); e.damaged -= d; q -= d;
+        e.lost = Math.max(0, e.lost - q);
+      } else if (r.kind === "damaged" || r.kind === "lost") {
+        const room = e.units - e.damaged - e.lost;
+        e[r.kind] += Math.min(q, Math.max(0, room));
+      }
+    });
+    return states;
+  }
+  const totals = (st) => {
+    let units = 0, damaged = 0, lost = 0;
+    Object.values(st.per).forEach((e) => { units += e.units; damaged += e.damaged; lost += e.lost; });
+    return { units, damaged, lost, good: units - damaged - lost };
+  };
+
+  function render(rows) {
+    const states = derive(rows);
+    let curD = 0, curL = 0;
+    states.forEach((st) => { const t = totals(st); curD += t.damaged; curL += t.lost; });
+    document.getElementById("sum-total").textContent = rows.length;
+    document.getElementById("sum-damaged").textContent = curD;
+    document.getElementById("sum-lost").textContent = curL;
+    document.getElementById("sum-schools").textContent = new Set(rows.map((r) => (r.school || "").trim())).size;
+
+    const grid = document.getElementById("school-status");
+    grid.innerHTML = "";
+    FURNITURE.schools.forEach((s) => {
+      const st = states.get(s.name), t = totals(st);
+      const btn = document.createElement("button");
+      btn.className = "school";
+      btn.setAttribute("aria-haspopup", "dialog");
+      btn.innerHTML =
+        `<span class="n">${t.units}<em>items</em></span>` +
+        `<b>${escapeHtml(s.name)}</b>` +
+        `<span class="st-line"><i class="ok-txt">${t.good} good</i>` +
+        (t.damaged ? ` · <i class="dmg-txt">${t.damaged} damaged</i>` : "") +
+        (t.lost ? ` · <i class="lost-txt">${t.lost} lost</i>` : "") + `</span>`;
+      btn.addEventListener("click", () => openModal(st, t));
+      grid.appendChild(btn);
+    });
+
+    const fixes = [];
+    states.forEach((st) => Object.entries(st.per).forEach(([k, e]) => {
+      if (e.damaged + e.lost > 0) fixes.push({ school: st.school.name, k, ...e });
+    }));
+    fixes.sort((a, b) => a.school.localeCompare(b.school) || (b.damaged + b.lost) - (a.damaged + a.lost));
+    document.querySelector("table.restock tbody").innerHTML = fixes.map((f) =>
+      `<tr><td>${escapeHtml(f.school)}</td><td>${FURNITURE.items[f.k].label}</td>` +
+      `<td class="num">${f.damaged}</td><td class="num">${f.lost}</td>` +
+      `<td class="num"><b>${f.damaged + f.lost}</b></td></tr>`
+    ).join("") || `<tr><td colspan="5" style="color:var(--muted)">Nothing to fix — every item is in good shape. 🎉</td></tr>`;
+
+    document.querySelector("table.latest tbody").innerHTML = rows.slice(-30).reverse().map((r) => {
+      const [cls, label] = KIND_PILL[r.kind] || ["damaged", r.kind];
+      const item = FURNITURE.items[r.item] ? FURNITURE.items[r.item].label : r.item;
+      return `<tr><td>${escapeHtml(r.t || "")}</td><td>${escapeHtml(r.school || "")}</td><td>${escapeHtml(item)}</td>` +
+        `<td class="num">${Math.max(1, Math.floor(+r.qty || 1))}</td>` +
+        `<td><span class="pill ${cls}">${label}</span></td><td>${escapeHtml(r.note || "")}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="color:var(--muted)">No reports yet.</td></tr>`;
+  }
+
+  const m = document.getElementById("status-modal");
+  function openModal(st, t) {
+    m.querySelector("h3").textContent = st.school.name;
+    m.querySelector(".meta").textContent =
+      `${t.units} items — ${t.good} good · ${t.damaged} damaged · ${t.lost} lost`;
+    m.querySelector("tbody").innerHTML = Object.entries(st.per).map(([k, e]) => {
+      const good = e.units - e.damaged - e.lost;
+      const chips = (e.damaged || e.lost)
+        ? `<span class="chip-st good">${good} good</span>` +
+          (e.damaged ? ` <span class="chip-st damaged">${e.damaged} damaged</span>` : "") +
+          (e.lost ? ` <span class="chip-st lost">${e.lost} lost</span>` : "")
+        : `<span class="chip-st allgood">all good</span>`;
+      return `<tr><td>${FURNITURE.items[k].label}</td><td class="num">${e.units}</td><td>${chips}</td></tr>`;
+    }).join("");
+    m.classList.add("open");
+    document.body.style.overflow = "hidden";
+    m.querySelector(".close").focus();
+  }
+  const close = () => { m.classList.remove("open"); document.body.style.overflow = ""; };
+  m.querySelector(".veil").addEventListener("click", close);
+  m.querySelector(".close").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => e.key === "Escape" && close());
+
+  (async () => {
+    let rows = null, live = false;
+    if (!new URLSearchParams(location.search).has("sample")) {
+      try {
+        const res = await fetch(DATA_URL, { cache: "no-store" });
+        if (res.ok) { const j = await res.json(); if (Array.isArray(j)) { rows = j; live = true; } }
+      } catch (_) {}
+    }
+    if (!rows) rows = SAMPLE;
+    document.getElementById("live-note").hidden = live;
+    document.getElementById("empty-note").hidden = !(live && rows.length === 0);
+    render(rows);
+  })();
+})();
+</script>
+</body>
+</html>

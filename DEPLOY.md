@@ -75,16 +75,21 @@ push 后 1–2 分钟自动生效（`*.github.io` 仓库的 Pages 是自动开�
 **防滥用**：Worker 只收本站发来的合法学校名，蜜罐字段拦截机器人；若地址被恶意刷，
 在 Cloudflare 里删掉 Worker 重建（换个名字 = 换网址），再更新 `report.html` 的 ENDPOINT。
 
-## 3. 看板（status.html）
+## 3. 管理看板（两块，都不在导航里，仅分享给团队/资方）
 
-- 地址：`https://dbsa-africa.github.io/status.html`（不在导航里，仅分享给团队/资方）
-- 数据直接来自 `data/reports.json`，**无需任何配置**；Worker 上线前显示示例数据并有黄框提示
-- **补书建议清单**：报损书名自动和该校捐赠书单模糊匹配，汇总出"哪校补哪本几册"，
-  回访采购直接照单；没匹配上的会标"not in catalogue"
-- 预览演示数据：`status.html?sample=1`
-- 想收邮件提醒：GitHub 仓库页 → **Watch → Custom → 勾 Pushes**（每条报损 = 一次 push）
+| 看板 | 地址 | 数据源 |
+|---|---|---|
+| 图书角 | `https://dbsa-africa.github.io/status.html` | `data/reports.json` |
+| 课桌椅 | `https://dbsa-africa.github.io/furniture-status.html` | `data/furniture-reports.json` |
 
-## 4. 生成 13 校专属二维码
+- 两块看板互有链接，**无需任何配置**，数据文件一有内容自动切换为实时模式
+- 图书角有**补书建议清单**（报损书名自动模糊匹配该校书单）；课桌椅有**维修/补换清单**
+  （按校按物品汇总当前损坏/丢失数）；Fixed/Found 报告会把物品移回 good
+- 预览演示数据：任一看板后加 `?sample=1`
+- 数据有 CDN 缓存，**最多延迟约 5 分钟**，属正常现象
+- 想收邮件提醒：GitHub 仓库页 → **Watch → Custom → 勾 Pushes**（每条报告 = 一次 push）
+
+## 4. 生成二维码（图书角 13 张 + 课桌椅 23 张）
 
 ```bash
 cd "/Users/paulineli/Desktop/DBSA/dbsa-africa.github.io"
@@ -92,11 +97,11 @@ pip3 install qrcode pillow   # 只需一次
 python3 gen_qr.py "和 Worker 里 REPORT_KEY 一模一样的口令"
 ```
 
-`qr/` 下生成 13 张 PNG，每张指向 `report.html?school=<该校 id>&k=<该校专属码>`：
-校名自动锁定、不能切换；专属码由 Worker 验证，改网址冒充别校无效；
-不带二维码直接打开报损页只会看到"请扫本校二维码"的提示。
+生成 `qr/books/`（贴**书柜门内侧**）和 `qr/furniture/`（贴教室墙/办公室）两套打印成品卡
+（二维码 + 校名 + 用途说明）。链接均带每校专属校验码：校名锁定、Worker 端验证，
+改网址冒充别校无效；两个项目都参与的学校共用同一个校验码（同一所学校=同一把钥匙）。
 
-打印（建议 5×5cm 以上）塑封，贴在每校**书柜门内侧**。
+打印（建议 6×7cm 以上）塑封。
 ⚠️ 二维码 PNG **不要提交进仓库**（已 gitignore）——里面的专属码就是钥匙。
 换了 REPORT_KEY 就要重新生成并重印全部二维码。
 
