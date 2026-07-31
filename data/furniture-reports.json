@@ -1,1 +1,10 @@
-[]
+[
+ {
+  "t": "2026-07-31 08:13",
+  "school": "Hanka DBSA School",
+  "item": "desk",
+  "kind": "damaged",
+  "qty": 2,
+  "note": "TEST - ignore"
+ }
+]
