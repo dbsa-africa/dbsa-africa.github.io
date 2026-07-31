@@ -111,7 +111,13 @@ p{margin:0 0 1em;max-width:64ch}
 .theme-btn .ic-sun{display:none}
 .theme-btn[data-mode="dark"] .ic-sun{display:block}
 .theme-btn[data-mode="dark"] .ic-moon{display:none}
-@media (max-width:640px){.nav a.link{display:none}.nav a.link.keep{display:inline-block}}
+@media (max-width:640px){
+  .nav .wrap{gap:14px}
+  .nav .brand img{height:28px}
+  .nav a.link{display:none}
+  .nav a.link.keep{display:inline-block;font-size:13px}
+  .nav .cta{display:none}
+}
 
 /* ---------- hero ---------- */
 .hero{position:relative;color:#fff;padding:0}
