@@ -34,7 +34,7 @@ push 后 1–2 分钟自动生效（`*.github.io` 仓库的 Pages 是自动开�
 | 文案 | `index.html` / `bookcorner.html` 里直接改文字 |
 | 照片 | 换 `assets/photos/photo-XX.jpg`（保持文件名即可） |
 | 品牌色 | `styles.css` 顶部 `--maroon` 等变量 |
-| 各校书单数据 | 重新生成 `assets/catalog.js`（数据源是采购/捐赠 Excel，找志愿者或 Claude 重跑生成脚本） |
+| 各校书单数据 | **数据源 = `0. 图书采购/Book Allocation 2026.xlsx`（实际到校+编号，Batch 2 起编号接续）**；改完跑 `python3 tools/gen_catalog.py "<该文件路径>"` 重新生成 `assets/catalog.js`（2025 各校条目不受影响） |
 | 报损页文案/斯瓦希里语 | `report.html` 里直接改 |
 | 中文界面（未来） | `site.js` 里 `I18N` 加 `zh` 字典 + 页面加切换按钮 |
 

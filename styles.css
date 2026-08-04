@@ -364,6 +364,7 @@ table.reports td{padding:10px 14px;border-bottom:1px solid var(--line)}
   border-radius:4px;padding:3px 7px;vertical-align:1px;
 }
 table.reports td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.code,.code{font:600 12.5px/1.4 var(--sans);font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--muted);white-space:nowrap}
 
 /* partners */
 .partners{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap}

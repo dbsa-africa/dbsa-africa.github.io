@@ -119,8 +119,9 @@ export default {
     } else {
       const title = String(b.title || "").trim().slice(0, 200);
       if (title.length < 2) return reply({ error: "missing or invalid fields" }, 400);
-      rec = { t, school, title, kind, note, matched: !!b.matched };
-      msg = `report: ${school} — ${title} (${kind})`;
+      const code = String(b.code || "").trim().toUpperCase().slice(0, 12);
+      rec = { t, school, title, kind, note, matched: !!b.matched, ...(code && { code }) };
+      msg = `report: ${school} — ${code ? code + " " : ""}${title} (${kind})`;
     }
 
     const api = `https://api.github.com/repos/${REPO}/contents/${P.file}`;

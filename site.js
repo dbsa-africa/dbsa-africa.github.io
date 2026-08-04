@@ -97,12 +97,20 @@ function renderRows(q) {
   if (!currentSchool) return;
   const tbody = document.querySelector("#catalog-modal tbody");
   const needle = q.trim().toLowerCase();
-  const rows = currentSchool.items.filter((it) => !needle || it[0].toLowerCase().includes(needle));
+  const pfx = currentSchool.prefix;
+  const hit = codeFind(currentSchool, q);
+  const rows = currentSchool.items.filter((it) => {
+    if (hit) return it === hit.item;
+    if (!needle) return true;
+    const range = pfx && it[3] ? fmtRange(pfx, it[3], it[4]) : "";
+    return (range + " " + it[0]).toLowerCase().includes(needle);
+  });
   tbody.innerHTML =
     rows.map((it) =>
-      `<tr><td>${escapeHtml(it[0])}</td><td>${escapeHtml(it[1] || "—")}</td><td class="num">${it[2]}</td></tr>`
+      `<tr><td class="code">${pfx && it[3] ? fmtRange(pfx, it[3], it[4]) : "—"}</td>` +
+      `<td>${escapeHtml(it[0])}</td><td>${escapeHtml(it[1] || "—")}</td><td class="num">${it[2]}</td></tr>`
     ).join("") ||
-    `<tr><td colspan="3" style="color:var(--muted)">${t("noResults")}</td></tr>`;
+    `<tr><td colspan="4" style="color:var(--muted)">${t("noResults")}</td></tr>`;
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -124,6 +132,29 @@ function fuzzyScore(q, title) {
   if (hit === qw.length) return 60 + Math.min(9, qw.length * 2);
   return hit ? Math.round((30 * hit) / qw.length) : 0;
 }
+/* ---------- book codes (2026 stock is numbered PIL-001 … GEN-100) ---------- */
+function fmtCode(prefix, n) { return prefix + "-" + String(n).padStart(3, "0"); }
+function fmtRange(prefix, from, to) {
+  return from === to ? fmtCode(prefix, from)
+                     : fmtCode(prefix, from) + "–" + String(to).padStart(3, "0");
+}
+/* read a book number out of a query: "PIL-023", "pil 23", "#023", "23".
+   The QR already locks the school, so any letter prefix is accepted —
+   only the number matters. */
+function parseCodeQuery(q, prefix) {
+  if (!prefix) return null;
+  const m = String(q).trim().match(/^#?\s*[A-Za-z]{0,4}[\s\-–—.]*(\d{1,4})\s*$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+/* → {item, n} when the query is a code inside one of this school's ranges */
+function codeFind(school, q) {
+  if (!school || !school.prefix) return null;
+  const n = parseCodeQuery(q, school.prefix);
+  if (n == null) return null;
+  const item = school.items.find((i) => i.length >= 5 && i[3] <= n && n <= i[4]);
+  return item ? { item, n } : null;
+}
+
 /* items: [[title, level, copies], …] → top matches [[title, level, copies], …] */
 function fuzzySuggest(items, q, limit) {
   return items
@@ -173,7 +204,7 @@ function deriveStates(rows) {
     states.set(s.name, {
       school: s,
       perTitle: new Map(s.items.map((it) =>
-        [normTxt(it[0]), { title: it[0], level: it[1], copies: it[2], lost: 0, damaged: 0, unmatched: false }])),
+        [normTxt(it[0]), { title: it[0], level: it[1], copies: it[2], from: it[3], to: it[4], lost: 0, damaged: 0, unmatched: false }])),
       extra: new Map(), // reported titles not in the catalogue
     });
   });
@@ -181,7 +212,9 @@ function deriveStates(rows) {
     const st = states.get((r.school || "").trim());
     if (!st) return;
     let entry = null;
-    const hit = (r.matched && st.school.items.find((it) => it[0] === r.title)) ||
+    const byCode = r.code ? codeFind(st.school, r.code) : null;
+    const hit = (byCode && byCode.item) ||
+                (r.matched && st.school.items.find((it) => it[0] === r.title)) ||
                 fuzzyBest(st.school.items, r.title || "");
     if (hit) entry = st.perTitle.get(normTxt(hit[0]));
     if (!entry) {
@@ -229,7 +262,8 @@ function renderStatus(rows) {
   const tbody = document.querySelector("table.reports:not(.restock) tbody");
   tbody.innerHTML = rows.slice(-30).reverse().map((r) => {
     const [cls, label] = KIND_PILL[r.kind] || ["damaged", r.kind];
-    return `<tr><td>${escapeHtml(r.t || "")}</td><td>${escapeHtml(r.school || "")}</td><td>${escapeHtml(r.title || "")}</td>` +
+    const book = (r.code ? `<span class="code">${escapeHtml(r.code)}</span> · ` : "") + escapeHtml(r.title || "");
+    return `<tr><td>${escapeHtml(r.t || "")}</td><td>${escapeHtml(r.school || "")}</td><td>${book}</td>` +
       `<td><span class="pill ${cls}">${label}</span></td>` +
       `<td>${escapeHtml(r.note || "")}</td></tr>`;
   }).join("") || `<tr><td colspan="5" style="color:var(--muted)">No reports yet.</td></tr>`;
@@ -266,9 +300,16 @@ function openStatusModal(st, tot) {
   const input = m.querySelector(".search input");
   input.value = "";
   const rowsAll = [...st.perTitle.values(), ...st.extra.values()];
+  const pfx = st.school.prefix;
   const render = (q) => {
     const needle = (q || "").trim().toLowerCase();
-    const rows = rowsAll.filter((e) => !needle || e.title.toLowerCase().includes(needle));
+    const hit = codeFind(st.school, q);
+    const rows = rowsAll.filter((e) => {
+      if (hit) return e.title === hit.item[0];
+      if (!needle) return true;
+      const range = pfx && e.from ? fmtRange(pfx, e.from, e.to) : "";
+      return (range + " " + e.title).toLowerCase().includes(needle);
+    });
     m.querySelector("tbody").innerHTML = rows.map((e) => {
       const good = e.unmatched ? 0 : Math.max(0, e.copies - e.lost - e.damaged);
       const chips = e.unmatched
@@ -276,9 +317,10 @@ function openStatusModal(st, tot) {
         : (e.lost || e.damaged)
           ? `<span class="chip-st good">${good} good</span>${statusChips(e)}`
           : `<span class="chip-st allgood">all good</span>`;
-      return `<tr><td>${escapeHtml(e.title)}</td><td>${escapeHtml(e.level || "—")}</td>` +
+      return `<tr><td class="code">${pfx && e.from ? fmtRange(pfx, e.from, e.to) : "—"}</td>` +
+        `<td>${escapeHtml(e.title)}</td><td>${escapeHtml(e.level || "—")}</td>` +
         `<td class="num">${e.unmatched ? "—" : e.copies}</td><td>${chips}</td></tr>`;
-    }).join("") || `<tr><td colspan="4" style="color:var(--muted)">${t("noResults")}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" style="color:var(--muted)">${t("noResults")}</td></tr>`;
   };
   input.oninput = (e) => render(e.target.value);
   render("");

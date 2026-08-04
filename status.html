@@ -92,10 +92,10 @@
       <span class="meta"></span>
       <button class="close" type="button">Close ✕</button>
     </header>
-    <div class="search"><input type="search" placeholder="Search this school's book list…" aria-label="Search book list"></div>
+    <div class="search"><input type="search" placeholder="Search by book number or title…" aria-label="Search book list"></div>
     <div class="list">
       <table>
-        <thead><tr><th>Title</th><th>Level</th><th style="text-align:right">Copies</th><th>Status</th></tr></thead>
+        <thead><tr><th>No.</th><th>Title</th><th>Level</th><th style="text-align:right">Copies</th><th>Status</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -110,12 +110,12 @@
   const DATA_URL = "https://raw.githubusercontent.com/dbsa-africa/dbsa-africa.github.io/main/data/reports.json";
 
   const SAMPLE = [
-    { t: "2026-08-05 11:05", school: "Joy Day Care",         title: "Kamusi ya Kiswahili",     kind: "damaged",  note: "Water damage",              matched: true },
-    { t: "2026-08-08 13:21", school: "Myto Junior Academy",  title: "diary of a wimpy kid",    kind: "lost",     note: "Missing after holiday",     matched: false },
-    { t: "2026-08-10 09:40", school: "Caso Upendo Academy",  title: "Sungura Mjanja",          kind: "damaged",  note: "Pages loose",               matched: true },
-    { t: "2026-08-11 15:02", school: "Genesis Joy School",   title: "My First Physics Book",   kind: "lost",     note: "",                          matched: false },
-    { t: "2026-08-12 10:14", school: "Pilot School",         title: "The Secret Garden",       kind: "damaged",  note: "Cover torn, still readable", matched: true },
-    { t: "2026-08-13 09:02", school: "Myto Junior Academy",  title: "Diary of a Wimpy Kid",    kind: "restored", note: "Found in another classroom", matched: true }
+    { t: "2026-08-05 11:05", school: "Pilot School",         code: "PIL-058", title: "Black Lagoon Advantures",       kind: "lost",     note: "Reported by sticker number", matched: true },
+    { t: "2026-08-08 13:21", school: "Myto Junior Academy",  code: "MT-058",  title: "Cam Jansen",                    kind: "lost",     note: "Missing after holiday",      matched: true },
+    { t: "2026-08-10 09:40", school: "Caso Upendo Academy",  title: "The Very Hungry Caterpillar",  kind: "damaged",  note: "Pages loose",                matched: true },
+    { t: "2026-08-11 15:02", school: "Genesis Joy School",   title: "My First Physics Book",        kind: "lost",     note: "",                           matched: false },
+    { t: "2026-08-12 10:14", school: "Joy Day Care",         title: "the gruffalo",                 kind: "damaged",  note: "Cover torn, still readable", matched: false },
+    { t: "2026-08-13 09:02", school: "Myto Junior Academy",  code: "MT-058",  title: "Cam Jansen",                    kind: "restored", note: "Found in another classroom", matched: true }
   ];
   initStatusModal();
   /* append ?sample=1 to preview the board with demo data */

@@ -57,9 +57,9 @@
       </div>
 
       <div class="field" id="book-field">
-        <label for="book-input">Book title <span class="sw">· Jina la kitabu</span></label>
-        <p class="hint">Start typing, then tap the right book from the list.
-        <span class="sw">Anza kuandika, kisha chagua kitabu.</span></p>
+        <label for="book-input">Book number or title <span class="sw">· Namba au jina la kitabu</span></label>
+        <p class="hint">Type the book number on the sticker, or the title — then tap the right book.
+        <span class="sw">Andika namba ya kitabu au jina lake, kisha chagua.</span></p>
         <input type="text" id="book-input" placeholder="e.g. Diary of a Wimpy Kid" maxlength="200">
         <div class="suggest" id="suggest" role="listbox"></div>
         <div class="picked" id="picked" hidden>
@@ -134,6 +134,7 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
   const $ = (id) => document.getElementById(id);
   const form = $("report-form");
   let pickedTitle = null; // exact catalogue title, or null when free-typed
+  let pickedCode = null;  // exact sticker code (e.g. "PIL-023") when reported by number
   let kind = null;
 
   /* ---- school comes ONLY from the QR link (?school=<id>&k=<code>) ----
@@ -148,41 +149,61 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
   } else {
     $("school-chip-name").textContent = school.name;
     $("school-chip-meta").textContent = `${school.books.toLocaleString()} books in your Book Corner`;
+    if (school.prefix)
+      $("book-input").placeholder = `e.g. ${school.prefix}-023 or The Gruffalo`;
   }
 
-  /* ---- book autocomplete ---- */
+  /* ---- book autocomplete: matches the sticker number OR the title ---- */
   const input = $("book-input"), box = $("suggest");
-  function renderSuggest(items) {
-    box.innerHTML = items.map((it, i) =>
-      `<button type="button" role="option" data-i="${i}">
-         <span>${escapeHtml(it[0])}</span><span class="lvl">${escapeHtml(it[1] || "")}</span>
-       </button>`).join("");
-    box.classList.toggle("open", items.length > 0);
-    box._items = items;
+  function suggestFor(q) {
+    const out = [];
+    const cf = codeFind(school, q);   // a bare number is enough — "5" → PIL-005
+    if (cf) out.push({ item: cf.item, code: fmtCode(school.prefix, cf.n) });
+    if (q.trim().length >= 2)         // title fuzziness needs a little more to go on
+      fuzzySuggest(school.items, q, 8).forEach((it) => {
+        if (!cf || it !== cf.item) out.push({ item: it, code: null });
+      });
+    return out.slice(0, 8);
+  }
+  function rangeLabel(it) {
+    return school.prefix && it[3] ? fmtRange(school.prefix, it[3], it[4]) : "";
+  }
+  function renderSuggest(list) {
+    box.innerHTML = list.map((s, i) => {
+      const sub = [s.item[1], s.code ? null : rangeLabel(s.item)].filter(Boolean).join(" · ");
+      return `<button type="button" role="option" data-i="${i}">
+         <span>${s.code ? `<b class="code">${escapeHtml(s.code)}</b> · ` : ""}${escapeHtml(s.item[0])}</span>
+         <span class="lvl">${escapeHtml(sub)}</span>
+       </button>`;
+    }).join("");
+    box.classList.toggle("open", list.length > 0);
+    box._list = list;
   }
   input.addEventListener("input", () => {
     clearPick(true);
-    const q = input.value;
-    if (!school || q.trim().length < 2) { renderSuggest([]); $("free-hint").hidden = true; return; }
-    const hits = fuzzySuggest(school.items, q, 8);
+    const q = input.value.trim();
+    if (!school || !q) { renderSuggest([]); $("free-hint").hidden = true; return; }
+    const hits = suggestFor(q);
     renderSuggest(hits);
-    $("free-hint").hidden = hits.length > 0;
+    $("free-hint").hidden = hits.length > 0 || q.length < 2;
   });
   box.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    pick(box._items[+b.dataset.i][0]);
+    const s = box._list[+b.dataset.i];
+    pick(s.item[0], s.code);
   });
   document.addEventListener("click", (e) => {
     if (!$("book-field").contains(e.target)) renderSuggest([]);
   });
-  function pick(title) {
+  function pick(title, code) {
     pickedTitle = title;
-    $("picked-title").textContent = title;
+    pickedCode = code || null;
+    $("picked-title").textContent = (code ? code + " · " : "") + title;
     $("picked").hidden = false; input.hidden = true; $("free-hint").hidden = true;
     renderSuggest([]);
   }
   function clearPick(keepInput) {
-    pickedTitle = null;
+    pickedTitle = null; pickedCode = null;
     $("picked").hidden = true; input.hidden = false;
     if (!keepInput) input.value = "";
   }
@@ -201,16 +222,23 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const err = $("form-err");
-    const title = pickedTitle || input.value.trim();
+    let title = pickedTitle || input.value.trim();
+    let code = pickedCode;
     if (!school) return;
-    if (title.length < 2) return showErr("Please enter the book title. · Tafadhali andika jina la kitabu.");
+    if (!pickedTitle) {
+      // typed a sticker number but didn't tap the suggestion — resolve it anyway
+      const cf = codeFind(school, title);
+      if (cf) { title = cf.item[0]; code = fmtCode(school.prefix, cf.n); }
+    }
+    if (title.length < 2) return showErr("Please enter the book number or title. · Tafadhali andika namba au jina la kitabu.");
     if (!kind) return showErr("Please tap Lost, Damaged or Found. · Tafadhali chagua kilichotokea.");
     err.hidden = true;
 
     const payload = {
       school: school.name, title, kind, k: KEY,
+      code: code || "",
       note: $("note-input").value.trim(),
-      matched: !!pickedTitle,
+      matched: !!(pickedTitle || code),
       website: $("hp").value,
     };
     const btn = $("submit-btn");
@@ -226,7 +254,7 @@ const ENDPOINT = "https://dbsa-report.ivolunteerdbsa.workers.dev";
           return showErr("This QR code is not valid for this school — please scan the QR inside your own bookcase. · Tafadhali tumia QR ya shule yako.");
         if (!res.ok) throw new Error("HTTP " + res.status);
       }
-      $("success-recap").textContent = `${title} — ${kind} · ${school.name}`;
+      $("success-recap").textContent = `${code ? code + " · " : ""}${title} — ${kind} · ${school.name}`;
       $("success-test").hidden = !!ENDPOINT;
       form.hidden = true; $("success").hidden = false;
       window.scrollTo({ top: 0, behavior: "instant" });
